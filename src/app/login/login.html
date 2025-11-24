@@ -8,9 +8,12 @@
 -->
 <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
   <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-    <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600" alt="Your Company" class="mx-auto h-10 w-auto dark:hidden" />
-    <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500" alt="Your Company" class="mx-auto h-10 w-auto not-dark:hidden" />
-    <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">Sign in to your account</h2>
+    <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600" alt="Your Company"
+      class="mx-auto h-10 w-auto dark:hidden" />
+    <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500" alt="Your Company"
+      class="mx-auto h-10 w-auto not-dark:hidden" />
+    <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900 dark:text-white">Sign in to your
+      account</h2>
   </div>
 
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
@@ -18,7 +21,8 @@
       <div>
         <label for="username" class="block text-sm/6 font-medium text-gray-900 dark:text-gray-100">User Name</label>
         <div class="mt-2">
-          <input id="username" formControlName="username" type="text" name="username" required autocomplete="email" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500" />
+          <input id="username" formControlName="username" type="text" name="username" required autocomplete="email"
+            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500" />
         </div>
       </div>
 
@@ -35,9 +39,23 @@
       </div>
 
       <div>
-        <button type="submit" (click)="submitForm()" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Sign in</button>
+        <button type="submit" (click)="submitForm()"
+          class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Sign
+          in</button>
       </div>
     </form>
+    @if (serverLoader) {
+
+
+
+    <div class="w-full mt-2 bg-gray-200 rounded-full h-2">
+      <div class="bg-brand bg-blue-900 h-2 rounded-full" [style.width.%]="loaderPercentage"></div>
+    </div>
+    <div class="flex justify-center mb-1">
+      <span class="text-sm font-medium text-body">{{loaderPercentage}}%</span>
+    </div>
+    }
+
 
     <!-- <p class="mt-10 text-center text-sm/6 text-gray-500 dark:text-gray-400">
       Not a member?

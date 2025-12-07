@@ -50,9 +50,9 @@ export class Chat {
   }
 
   async ngOnInit() {
-    if (sessionStorage.getItem("username")) {
-      await this.clientService.initiateSocket(sessionStorage.getItem("username") || "")
-    }
+    // if (sessionStorage.getItem("username")) {
+    //   await this.clientService.initiateSocket(sessionStorage.getItem("username") || "")
+    // }
     console.log(this.clientService.client.connected);
     this.initializeClient()
     if (this.clientService.client.connected) {

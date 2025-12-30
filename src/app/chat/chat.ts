@@ -3,7 +3,7 @@ import { Socket } from '../services/socket';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import AgoraRTC, { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
+import AgoraRTC, { IAgoraRTCClient, ILocalVideoTrack, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
 
 interface UserList {
   username: string,
@@ -34,6 +34,9 @@ export class Chat {
   client!: IAgoraRTCClient;
   // Local audio track
   localAudioTrack!: IMicrophoneAudioTrack;
+
+  localVideoTrack!: ILocalVideoTrack
+
   // Connection parameters
   appId = "48b5127bfa5e4dd582f08a1adcfd77f6";
   channel = "c5e9589a20ca4fdd84579509518ca491";
@@ -45,6 +48,8 @@ export class Chat {
   currentAudioDetails:any = {
     active:false
   }
+
+  audioVideo = ["AUDIO","VIDEO"]
 
   constructor(private httpClient: HttpClient) {
   }
@@ -98,13 +103,18 @@ export class Chat {
 
               }
             }
-            else if (messageDetail.communicationType == "AUDIO") {
+            else if (this.audioVideo.indexOf(messageDetail.communicationType) != -1) {
               if (messageDetail.communicationRequestType == "LEAVE") {
                     this.currentAudioDetails={
                       active:false
                     }
                     if(this.client){
-                      this.leaveAgoraChannel()
+                      if (messageDetail.communicationType == "AUDIO") {
+                        this.leaveAgoraChannel()
+                      }
+                      else if (messageDetail.communicationType == "VIDEO") {
+                        this.leaveChannelVideo()
+                      }
                     }
                     return
               }
@@ -129,7 +139,14 @@ export class Chat {
                 console.log(this.currentAudioDetails);
               if (messageDetail.communicationRequestType == "JOIN") {
                 
-                this.joinChannel(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+                if (messageDetail.communicationType == "AUDIO") {
+                      this.joinChannel(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+
+                    }
+                    else if(messageDetail.communicationType == "VIDEO"){
+                      this.joinChannelVideo(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+
+                    }
               }
               // if (this.hash.has(`${messageDetail.sender}_${messageDetail.receiver}`)) {
               //   const hashValue = this.hash.get(`${messageDetail.sender}_${messageDetail.receiver}`)
@@ -172,11 +189,22 @@ export class Chat {
           this.hash.delete(`${userData?.socketId}_${this.ownUser.socketId}`)
           if (this.currentAudioDetails.active == true) {
             if ((userData.socketId == this.currentAudioDetails.sender) || (userData.socketId == this.currentAudioDetails.receiver)) {
-              this.currentAudioDetails={
-                      active:false
-                    }
+              console.log(JSON.stringify(this.currentAudioDetails));
+              
+              
                     if(this.client){
-                      this.leaveAgoraChannel()
+                        if (this.currentAudioDetails.communicationType == "AUDIO") {
+                          this.leaveAgoraChannel()
+                        }
+                        else if(this.currentAudioDetails.communicationType == "VIDEO"){
+                          this.leaveChannelVideo()
+                        }
+                      
+                      
+                      
+                    }
+                    this.currentAudioDetails={
+                      active:false
                     }
                     return
             }
@@ -270,13 +298,18 @@ export class Chat {
 
                   }
                 }
-                else if (messageDetail.communicationType == "AUDIO") {
+                else if (this.audioVideo.indexOf(messageDetail.communicationType) != -1) {
                   if (messageDetail.communicationRequestType == "LEAVE") {
                     this.currentAudioDetails={
                       active:false
                     }
                     if(this.client){
-                      this.leaveAgoraChannel()
+                      if (messageDetail.communicationType == "AUDIO") {
+                        this.leaveAgoraChannel()
+                      }
+                      else if (messageDetail.communicationType == "VIDEO") {
+                        this.leaveChannelVideo()
+                      }
                     }
                     return
                   }
@@ -302,7 +335,14 @@ export class Chat {
                 
                 
                   if (messageDetail.communicationRequestType == "JOIN") {
-                    this.joinChannel(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+                    if (messageDetail.communicationType == "AUDIO") {
+                      this.joinChannel(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+
+                    }
+                    else if(messageDetail.communicationType == "VIDEO"){
+                      this.joinChannelVideo(`${messageDetails.sender}_${messageDetail.receiver}`,messageDetails.sender,messageDetails.token)
+
+                    }
                   }
                   console.log(messageDetails);
 
@@ -404,6 +444,10 @@ export class Chat {
         // Play the remote audio track.
         remoteAudioTrack.play();
       }
+        if (mediaType === "video") {
+            this.displayRemoteVideo(user);
+        }
+
     });
     // Listen for the "user-unpublished" event
     this.client.on("user-unpublished", async (user) => {
@@ -497,10 +541,16 @@ export class Chat {
     //   console.log(this.hash);
 
     // }
-    this.joinChannel(`${audioInfo.sender}_${audioInfo.receiver}`, audioInfo.receiver, audioInfo.token)
+    if (audioInfo.communicationType == "AUDIO") {
+      this.joinChannel(`${audioInfo.sender}_${audioInfo.receiver}`, audioInfo.receiver, audioInfo.token)
+
+    }
+    else if(audioInfo.communicationType == "VIDEO"){
+      this.joinChannelVideo(`${audioInfo.sender}_${audioInfo.receiver}`, audioInfo.receiver, audioInfo.token)
+    }
     this.clientService.client.publish({
       destination: "/app/private-message",
-      body: JSON.stringify({ sender: messageDetails.sender, receiver: messageDetails.receiver, message: this.messageContent, communicationType: "AUDIO", communicationRequestType: "JOIN" , senderName:messageDetails.senderName,receiverName: messageDetails.receiverName })
+      body: JSON.stringify({ sender: messageDetails.sender, receiver: messageDetails.receiver, message: this.messageContent, communicationType: audioInfo.communicationType, communicationRequestType: "JOIN" , senderName:messageDetails.senderName,receiverName: messageDetails.receiverName })
     });
   }
 
@@ -518,14 +568,19 @@ export class Chat {
     
     this.clientService.client.publish({
       destination: "/app/private-message",
-      body: JSON.stringify({ sender: (this.ownUser.socketId == messageDetails.sender) ? messageDetails.receiver : messageDetails.sender, receiver: (this.ownUser.socketId == messageDetails.sender) ? messageDetails.sender : messageDetails.receiver, message: this.messageContent, communicationType: "AUDIO", communicationRequestType: "LEAVE" , senderName:messageDetails.senderName,receiverName: messageDetails.receiverName })
+      body: JSON.stringify({ sender: (this.ownUser.socketId == messageDetails.sender) ? messageDetails.receiver : messageDetails.sender, receiver: (this.ownUser.socketId == messageDetails.sender) ? messageDetails.sender : messageDetails.receiver, message: this.messageContent, communicationType: messageDetails.communicationType, communicationRequestType: "LEAVE" , senderName:messageDetails.senderName,receiverName: messageDetails.receiverName })
     });
     if (messageDetails.communicationRequestType == "LEAVE") {
                     this.currentAudioDetails={
                       active:false
                     }
                     if(this.client){
-                      this.leaveAgoraChannel()
+                      if (messageDetails.communicationType == "AUDIO") {
+                        this.leaveAgoraChannel()
+                      }
+                      else if(messageDetails.communicationType == "VIDEO"){
+                        this.leaveChannelVideo()
+                      }
                     }
                     
     }
@@ -534,7 +589,7 @@ export class Chat {
 
   async leaveAgoraChannel() {
   // Unpublish local tracks
-  if (this.localAudioTrack) {
+  if (!!this.localAudioTrack) {
     await this.client.unpublish(this.localAudioTrack);
     this.localAudioTrack.close();
   }
@@ -545,10 +600,79 @@ export class Chat {
   // }
 
   // Leave the channel
-  await this.client.leave();
+  await this.client?.leave();
 
   console.log("Left the channel successfully.");
   // You might want to update your UI here to reflect that the user has left
 }
+
+  async leaveChannelVideo() {
+    // Close local tracks
+    this.localAudioTrack?.close();
+    this.localVideoTrack?.close();
+    // Remove local video container
+    const localPlayerContainer = document.getElementById("localVideo");
+    localPlayerContainer && localPlayerContainer?.remove();
+    // Remove all remote video containers
+        const playerContainer = document.getElementById("remoteVideo");
+        playerContainer && playerContainer?.remove();
+    
+    // Leave the channel
+    await this.client.leave();
+}
+
+
+
+initiateVideo() {
+    this.audioActive = true
+    const messageDetails = {
+      message: this.messageContent,
+      sender: this.ownUser.socketId,
+      receiver: this.currentReceiverUser.socketId,
+      time: new Date().toISOString(),
+      communicationType: "VIDEO",
+      communicationRequestType: "REQUEST",
+      senderName: this.ownUser.username,
+      receiverName: this.currentReceiverUser.username
+    }
+    this.currentAudioDetails = {
+      ...messageDetails,
+      active:true
+    }
+    this.clientService.client.publish({
+      destination: "/app/private-message",
+      body: JSON.stringify({ sender: this.ownUser.socketId, receiver: this.currentReceiverUser.socketId, message: this.messageContent, communicationType: "VIDEO", communicationRequestType: "REQUEST", senderName: this.ownUser.username, receiverName: this.currentReceiverUser.username })
+    });
+  }
+
+
+  async joinChannelVideo(channel: string, user: string, token: string) {
+    await this.client.join(this.appId, channel, token, user);
+    await this.createLocalMediaTracks();
+    this.displayLocalVideo();
+    this.publishLocalTracks();
+  }
+
+  displayRemoteVideo(user:any) {
+    console.log("test",user);
+    
+    const remoteVideoTrack = user.videoTrack;
+    const remotePlayerContainer = document.getElementById("remoteVideo") as HTMLElement;
+    remoteVideoTrack.play(remotePlayerContainer);
+  }
+
+  displayLocalVideo() {
+    const localPlayerContainer = document.getElementById("localVideo") as HTMLElement;
+    this.localVideoTrack.play(localPlayerContainer);
+  }
+
+
+  async createLocalMediaTracks() {
+    this.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    this.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+  }
+  async publishLocalTracks() {
+    await this.client.publish([this.localAudioTrack, this.localVideoTrack]);
+  }
 
 }
